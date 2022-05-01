@@ -68,12 +68,19 @@ export default function ImageViewer({ src }) {
   }, [setDragging]);
 
   const onWheel = useCallback((e) => {
+    if (!e.currentTarget) { return false;}
+    const currentTarget = e.currentTarget;
+
     setRect((rect) => {
+      const ratioX = (e.clientX - currentTarget.clientLeft - rect.left) / rect.width;
+      const ratioY = (e.clientY - currentTarget.clientTop - rect.top) / rect.height;
+
       const offsetW = rect.width * 0.2 * (e.deltaY > 0 ? 1 : -1);
       const offsetH = offsetW / (rect.width / rect.height);
+
       return {
-        left: rect.left - offsetW / 2,
-        top: rect.top - offsetH / 2,
+        left: rect.left - ratioX * offsetW,
+        top: rect.top - ratioY * offsetH,
         width: rect.width + offsetW,
         height: rect.height + offsetH,
       }
@@ -83,12 +90,13 @@ export default function ImageViewer({ src }) {
   return (
     <div
       className={'wrapper'}
-      onWheel={onWheel}
 
+      draggable={false}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-      draggable={false}
+
+      onWheel={onWheel}
     >
       {
         loaded ? (
