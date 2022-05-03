@@ -217,8 +217,6 @@ export default function ImageViewer({ src }) {
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-
-      onWheel={onWheel}
       onDoubleClickCapture={onDoubleClick}
     >
       {
@@ -228,6 +226,7 @@ export default function ImageViewer({ src }) {
             src={src}
             alt="查看图片"
             draggable={false}
+            onWheel={onWheel}
             style={{
               transform: `translate(${rect.left}px, ${rect.top}px)`,
               width: `${rect.width}px`,
