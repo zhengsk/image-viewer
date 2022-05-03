@@ -10,11 +10,11 @@ export default {
 const Template = args => <ImageViewer {...args} />;
 
 export const Default = Template.bind({
-  src: 'https://hbimg.huaban.com/732e600f77172480ae0fef98102fd3937e7070609dd0d3-UPF8Jn',
+  src: 'https://hbimg.huaban.com/27ccbcac7eea8602187d307900a1a25a17a0a5831329e8-Ue5B5g',
 });
 
 Default.args = {
-  src: 'https://hbimg.huaban.com/732e600f77172480ae0fef98102fd3937e7070609dd0d3-UPF8Jn',
+  src: 'https://hbimg.huaban.com/27ccbcac7eea8602187d307900a1a25a17a0a5831329e8-Ue5B5g',
   task: {
     title: 'Test Task',
     state: 'TASK_INBOX',

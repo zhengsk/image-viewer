@@ -18,6 +18,7 @@ export default function ImageViewer({ src }) {
   const mouseSource = useRef({x: 0, y: 0});
   const [prepare, setPrepare] = useState(false);
 
+  // 缩放
   const zoomTo = useCallback(({ zoom, x, y, alignCenter }) => {
     const currentTarget = containerRef.current;
 
@@ -52,6 +53,20 @@ export default function ImageViewer({ src }) {
     });
   }, [naturalSize.width, naturalSize.height, containerSize.width, containerSize.height]);
 
+  // 自适应
+  const fitSize = useCallback(() => {
+     // 窗口适配居中展示
+     const zoom = Math.min(
+      (containerSize.width -50 ) / naturalSize.width,
+      (containerSize.height -50 ) / naturalSize.height
+    );
+
+    zoomTo({
+      zoom,
+      alignCenter: true,
+    });
+  }, [zoomTo, containerSize, naturalSize.width, naturalSize.height]);
+
   useEffect(() => {
     setContainerSize({
       width: containerRef.current.clientWidth,
@@ -59,6 +74,7 @@ export default function ImageViewer({ src }) {
     })
   }, []);
 
+  // 窗口变化自适应
   useEffect(() => {
     const resizeAction = () => {
       setContainerSize({
@@ -77,6 +93,7 @@ export default function ImageViewer({ src }) {
     return () => { window.removeEventListener('resize', resizeAction)}
   }, [naturalSize.width, zoomTo]);
 
+  // 图片加载完成
   useEffect(() => {
     const img = new Image();
     img.src = src;
@@ -87,22 +104,19 @@ export default function ImageViewer({ src }) {
         height: img.naturalHeight,
       }));
 
+      // 图片原始尺寸
       setNaturalSize({
         width: img.naturalWidth,
         height: img.naturalHeight,
       });
 
-      zoomTo({
-        zoom: (containerRef.current.clientWidth -100 ) / img.naturalWidth,
-        alignCenter: true,
-      });
-
+      fitSize(); // 自适应 @TODO: 小图情况下
       setLoaded(true);
     }
     img.onerror = () => {
       console.info('图片加载失败');
     }
-  }, [src, setLoaded, zoomTo]);
+  }, [src, setLoaded, fitSize, containerSize]);
 
   const onMouseDown = useCallback((e) => {
     console.info(e.clientX, e.clientY);
@@ -156,21 +170,29 @@ export default function ImageViewer({ src }) {
     if (!e.currentTarget) { return false;}
     const currentTarget = e.currentTarget;
 
-    if (Math.abs((containerSize.width -100 ) / rect.width - 1) > 0.01) {
-      // 窗口适配居中展示
-      zoomTo({
-        zoom: (containerSize.width -100 ) / naturalSize.width,
-        alignCenter: true,
-      });
-    } else {
+    if (
+      Math.abs((containerSize.width - 50 ) / rect.width - 1) < 0.01 ||
+      Math.abs((containerSize.height - 50 ) / rect.height - 1) < 0.01
+    ) {
       // 1 : 1 展示
       zoomTo({
         zoom: 1,
         x: e.clientX - currentTarget.clientLeft,
         y: e.clientY - currentTarget.clientTop,
       });
+    } else {
+      // 窗口适配居中展示
+      const zoom = Math.min(
+        (containerSize.width -50 ) / naturalSize.width,
+        (containerSize.height -50 ) / naturalSize.height
+      );
+
+      zoomTo({
+        zoom,
+        alignCenter: true,
+      });
     }
-  }, [zoomTo, rect.width, containerSize.width, naturalSize.width]);
+  }, [zoomTo, rect.width, rect.height, containerSize, naturalSize]);
 
   // 滚轮
   const onWheel = useCallback((e) => {
@@ -217,22 +239,30 @@ export default function ImageViewer({ src }) {
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-      onDoubleClickCapture={onDoubleClick}
     >
       {
         loaded ? (
-          <img
-            className='imgEle'
-            src={src}
-            alt="查看图片"
-            draggable={false}
-            onWheel={onWheel}
-            style={{
-              transform: `translate(${rect.left}px, ${rect.top}px)`,
-              width: `${rect.width}px`,
-              height: `${rect.height}px`,
-            }}
-          />
+          <>
+            <img
+              className='imgEle'
+              src={src}
+              alt="查看图片"
+              draggable={false}
+              onWheel={onWheel}
+              onDoubleClickCapture={onDoubleClick}
+              style={{
+                transform: `translate(${rect.left}px, ${rect.top}px)`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+              }}
+            />
+            <span
+              className='zoomValue'
+              onClick={onDoubleClick}
+            >
+              { Math.round(rect.width / naturalSize.width * 100) }%
+            </span>
+          </>
         ) : (
           <span>加载中...</span>
         )

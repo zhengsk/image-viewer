@@ -17,3 +17,21 @@
   left: 0;
   transition: all 80ms ease-out;
 }
+
+.zoomValue {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 3px 5px;
+  font-size: 12px;
+  text-align: center;
+  width: 40px;
+  border-radius: 20px;
+  color: #FFF;
+}
+
+.zoomValue:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
