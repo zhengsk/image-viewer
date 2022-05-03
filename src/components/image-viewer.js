@@ -2,21 +2,20 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './image-viewer.css';
 
 export default function ImageViewer({ src }) {
+  console.count('Render');
+
   const containerRef = useRef(null);
+  const readyDrag = useRef(false);
+
   const [loaded, setLoaded] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [rect, setRect] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-    height: 0,
-  });
-
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0});
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0});
+  const [rect, setRect] = useState({ top: 0, left: 0, width: 0, height: 0, });
+
 
   const mouseSource = useRef({x: 0, y: 0});
-  const [prepare, setPrepare] = useState(false);
+  
 
   // 缩放
   const zoomTo = useCallback(({ zoom, x, y, alignCenter }) => {
@@ -84,7 +83,7 @@ export default function ImageViewer({ src }) {
 
       // 窗口适配居中展示
       zoomTo({
-        zoom: (containerRef.current.clientWidth -100 ) / naturalSize.width,
+        zoom: (containerRef.current.clientWidth - 100 ) / naturalSize.width,
         alignCenter: true,
       });
     }
@@ -126,13 +125,13 @@ export default function ImageViewer({ src }) {
       mouseX: e.clientX,
       mouseY: e.clientY,
     };
-    setPrepare(true);
+    readyDrag.current = true;
   }, [rect]);
 
   const onMouseMove = useCallback((e) => {
     const source = mouseSource.current;
     if (
-      prepare &&
+      readyDrag.current &&
       !dragging && (
         Math.abs(source.mouseX - e.clientX) >= 5 ||
         Math.abs(source.mouseY - e.clientY) >= 5
@@ -158,12 +157,14 @@ export default function ImageViewer({ src }) {
         };
       });
     }
-  }, [prepare, dragging, setDragging, containerSize.width, containerSize.height]);
+  }, [dragging, setDragging, containerSize.width, containerSize.height]);
 
   const onMouseUp = useCallback((e) => {
-    setPrepare(false);
-    setDragging(false);
-  }, [setDragging]);
+    readyDrag.current = false;
+    if (dragging) {
+      setDragging(false);
+    }
+  }, [dragging]);
 
   // 双击
   const onDoubleClick = useCallback((e) => {
@@ -210,26 +211,14 @@ export default function ImageViewer({ src }) {
         }
       });
     } else {
-      setRect((rect) => {
-        const ratioX = (e.clientX - currentTarget.clientLeft - rect.left) / rect.width;
-        const ratioY = (e.clientY - currentTarget.clientTop - rect.top) / rect.height;
-  
-        let offsetW = rect.width * 0.3 * (e.deltaY > 0 ? -1 : 1);
-        offsetW = rect.width + offsetW <= 50  ? 50  - rect.width : offsetW; // 最小100px
-        offsetW = (rect.width + offsetW) / naturalSize.width >= 10 ?  naturalSize.width * 10 - rect.width : offsetW; // 最大10倍放大
-
-        const offsetH = offsetW / (rect.width / rect.height);
-  
-        return {
-          left: rect.left - ratioX * offsetW,
-          top: rect.top - ratioY * offsetH,
-          width: rect.width + offsetW,
-          height: rect.height + offsetH,
-        }
+      zoomTo({
+        zoom: rect.width / naturalSize.width + (-e.deltaY * 0.001),
+        x: e.clientX - currentTarget.clientLeft,
+        y: e.clientY - currentTarget.clientTop,
       });
     }
 
-  }, [naturalSize.width]);
+  }, [naturalSize.width, rect.width, zoomTo]);
 
   return (
     <div
@@ -237,8 +226,8 @@ export default function ImageViewer({ src }) {
       ref={containerRef}
       draggable={false}
       onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
+      onMouseMoveCapture={onMouseMove}
+      onMouseUpCapture={onMouseUp}
     >
       {
         loaded ? (
@@ -248,7 +237,7 @@ export default function ImageViewer({ src }) {
               src={src}
               alt="查看图片"
               draggable={false}
-              onWheel={onWheel}
+              onWheelCapture={onWheel}
               onDoubleClickCapture={onDoubleClick}
               style={{
                 transform: `translate(${rect.left}px, ${rect.top}px)`,

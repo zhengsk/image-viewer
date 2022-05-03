@@ -15,7 +15,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  transition: all 80ms ease-out;
+  /* transition: all 80ms ease-out; */
 }
 
 .zoomValue {
