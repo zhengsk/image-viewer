@@ -13,7 +13,6 @@ export default function ImageViewer({ src }) {
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0});
   const [rect, setRect] = useState({ top: 0, left: 0, width: 0, height: 0, });
 
-
   const mouseSource = useRef({x: 0, y: 0});
   
 
@@ -66,13 +65,7 @@ export default function ImageViewer({ src }) {
     });
   }, [zoomTo, containerSize, naturalSize.width, naturalSize.height]);
 
-  useEffect(() => {
-    setContainerSize({
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
-    })
-  }, []);
-
+  
   // 窗口变化自适应
   useEffect(() => {
     const resizeAction = () => {
@@ -80,17 +73,13 @@ export default function ImageViewer({ src }) {
         width: containerRef.current.clientWidth,
         height: containerRef.current.clientHeight,
       });
+    };
 
-      // 窗口适配居中展示
-      zoomTo({
-        zoom: (containerRef.current.clientWidth - 100 ) / naturalSize.width,
-        alignCenter: true,
-      });
-    }
+    resizeAction(); // 初始化
+
     window.addEventListener('resize', resizeAction);
-
     return () => { window.removeEventListener('resize', resizeAction)}
-  }, [naturalSize.width, zoomTo]);
+  }, []);
 
   // 图片加载完成
   useEffect(() => {
@@ -109,13 +98,19 @@ export default function ImageViewer({ src }) {
         height: img.naturalHeight,
       });
 
-      fitSize(); // 自适应 @TODO: 小图情况下
       setLoaded(true);
     }
     img.onerror = () => {
       console.info('图片加载失败');
     }
-  }, [src, setLoaded, fitSize, containerSize]);
+  }, [src, setLoaded]);
+
+  // 加载完成
+  useEffect(() => {
+    if (loaded) {
+      fitSize(); // 自适应 @TODO: 小图情况下
+    }
+  }, [loaded, fitSize])
 
   const onMouseDown = useCallback((e) => {
     console.info(e.clientX, e.clientY);
