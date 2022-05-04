@@ -4,6 +4,8 @@ import './image-viewer.css';
 export default function ImageViewer({ src }) {
   console.count('Render');
 
+  const backgroundValues = ['black', 'white', 'grid'];
+  
   const containerRef = useRef(null);
   const readyDrag = useRef(false);
 
@@ -12,9 +14,9 @@ export default function ImageViewer({ src }) {
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0});
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0});
   const [rect, setRect] = useState({ top: 0, left: 0, width: 0, height: 0, });
-
+  const [degree, setDegree] = useState(0); // 旋转角度
   const mouseSource = useRef({x: 0, y: 0});
-  
+  const [background, setBackground] = useState(0);
 
   // 缩放
   const zoomTo = useCallback(({ zoom, x, y, alignCenter }) => {
@@ -112,6 +114,7 @@ export default function ImageViewer({ src }) {
     }
   }, [loaded, fitSize])
 
+  // 拖拽：mouseDown
   const onMouseDown = useCallback((e) => {
     console.info(e.clientX, e.clientY);
     mouseSource.current = {
@@ -123,6 +126,7 @@ export default function ImageViewer({ src }) {
     readyDrag.current = true;
   }, [rect]);
 
+  // 拖拽：mouseMove
   const onMouseMove = useCallback((e) => {
     const source = mouseSource.current;
     if (
@@ -154,6 +158,7 @@ export default function ImageViewer({ src }) {
     }
   }, [dragging, setDragging, containerSize.width, containerSize.height]);
 
+  // 拖拽：mouseUp
   const onMouseUp = useCallback((e) => {
     readyDrag.current = false;
     if (dragging) {
@@ -161,21 +166,14 @@ export default function ImageViewer({ src }) {
     }
   }, [dragging]);
 
-  // 双击
-  const onDoubleClick = useCallback((e) => {
-    if (!e.currentTarget) { return false;}
-    const currentTarget = e.currentTarget;
-
+  // 切换自适应和1:1
+  const toggleFit = useCallback(({x, y}) => {
     if (
       Math.abs((containerSize.width - 50 ) / rect.width - 1) < 0.01 ||
       Math.abs((containerSize.height - 50 ) / rect.height - 1) < 0.01
     ) {
       // 1 : 1 展示
-      zoomTo({
-        zoom: 1,
-        x: e.clientX - currentTarget.clientLeft,
-        y: e.clientY - currentTarget.clientTop,
-      });
+      zoomTo({ zoom: 1, x, y, });
     } else {
       // 窗口适配居中展示
       const zoom = Math.min(
@@ -189,6 +187,19 @@ export default function ImageViewer({ src }) {
       });
     }
   }, [zoomTo, rect.width, rect.height, containerSize, naturalSize]);
+
+  // 双击图片
+  const onDoubleClick = useCallback((e) => {
+    if (e.detail % 2 === 1) { return false;}
+    if (!e.currentTarget) { return false;}
+    const currentTarget = e.currentTarget;
+
+    toggleFit({
+      x:  e.clientX - currentTarget.clientLeft,
+      y: e.clientY - currentTarget.clientTop,
+    });
+  }, [toggleFit]);
+
 
   // 滚轮
   const onWheel = useCallback((e) => {
@@ -215,9 +226,37 @@ export default function ImageViewer({ src }) {
 
   }, [naturalSize.width, rect.width, zoomTo]);
 
+  // 旋转
+  const rotate = useCallback(() => {
+    setDegree((degree) => {
+      degree += 90;
+
+      // 交换宽高
+      setNaturalSize(({width, height}) => {
+        return {
+          width: height,
+          height: width,
+        }
+      });
+
+      return degree;
+    });
+  }, []);
+
+  // 切换背景
+  const switchBackground = useCallback(() => {
+    setBackground(background => {
+      background += 1;
+      if (background >= backgroundValues.length) {
+        background = 0;
+      }
+      return background;
+    });
+  }, [backgroundValues.length]);
+
   return (
     <div
-      className={'wrapper'}
+      className={`wrapper background_${backgroundValues[background]} ${dragging ? 'dragging' : ''}`}
       ref={containerRef}
       draggable={false}
       onMouseDown={onMouseDown}
@@ -227,22 +266,45 @@ export default function ImageViewer({ src }) {
       {
         loaded ? (
           <>
-            <img
-              className='imgEle'
-              src={src}
-              alt="查看图片"
-              draggable={false}
+            <div
+              className='imageWrapper'
               onWheelCapture={onWheel}
-              onDoubleClickCapture={onDoubleClick}
+              onClickCapture={onDoubleClick}
               style={{
                 transform: `translate(${rect.left}px, ${rect.top}px)`,
                 width: `${rect.width}px`,
                 height: `${rect.height}px`,
               }}
-            />
+            >
+              <img
+                className='imageEle'
+                src={src}
+                alt="查看图片"
+                draggable={false}
+                style={{
+                  width: `${degree % 180 === 0 ? rect.width : rect.height}px`,
+                  height: `${degree % 180 === 0 ? rect.height : rect.width}px`,
+                  transform: `rotate(${degree}deg)`
+                }}
+              />
+            </div>
+            <ul className='tools'>
+              <li onClick={toggleFit}>
+                { rect.width === naturalSize.width ? 
+                  (<span>自适应</span>) :
+                  (<span>1:1比例</span>)
+                }
+              </li>
+              <li onClick={rotate}>
+                <span>旋转 {degree % 360}°</span>
+              </li>
+              <li onClick={switchBackground}>
+                <span>切换背景</span>
+              </li>
+            </ul>
             <span
               className='zoomValue'
-              onClick={onDoubleClick}
+              onClick={toggleFit}
             >
               { Math.round(rect.width / naturalSize.width * 100) }%
             </span>
